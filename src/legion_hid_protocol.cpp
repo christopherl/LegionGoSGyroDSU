@@ -27,6 +27,11 @@ auto read_be_i16(const Report& report, std::size_t offset) -> std::int16_t
     return static_cast<std::int16_t>(value);
 }
 
+bool is_known_gyro_glitch(std::int16_t value)
+{
+    return value == 254 || value == 255 || value == -254 || value == -255;
+}
+
 auto enable_imu(std::uint8_t controller) -> Command
 {
     return {0x05, 0x06, 0x6A, 0x02, controller, 0x01, 0x01};
@@ -99,6 +104,21 @@ bool decode_report(const Report& report, ControllerSide side,
                        read_be_i16(report, 54) * GyroscopeScale};
     }
     return true;
+}
+
+bool has_known_gyro_glitch(const Report& report, ControllerSide side)
+{
+    if (report[0] != MotionReportId)
+        return false;
+
+    const std::array<std::size_t, 3> offsets =
+        side == ControllerSide::Left
+            ? std::array<std::size_t, 3>{41, 43, 45}
+            : std::array<std::size_t, 3>{54, 56, 58};
+    for (const auto offset : offsets)
+        if (is_known_gyro_glitch(read_be_i16(report, offset)))
+            return true;
+    return false;
 }
 
 auto timestamp_delta_seconds(std::uint8_t previous, std::uint8_t current)

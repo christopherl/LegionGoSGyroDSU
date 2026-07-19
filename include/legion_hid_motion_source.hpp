@@ -28,6 +28,9 @@ class LegionHIDMotionSource final : public MotionSource
     int fd_ = -1;
     bool have_timestamp_ = false;
     std::uint8_t previous_timestamp_ = 0;
+    bool have_valid_gyro_ = false;
+    Vec3 last_valid_gyro_;
+    std::uint64_t gyro_glitch_count_ = 0;
     legion_protocol::ControllerSide selected_side_ =
         legion_protocol::ControllerSide::Right;
 };

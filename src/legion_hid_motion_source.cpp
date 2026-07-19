@@ -80,6 +80,7 @@ void LegionHIDMotionSource::close_device()
     }
     fd_ = -1;
     have_timestamp_ = false;
+    have_valid_gyro_ = false;
 }
 
 bool LegionHIDMotionSource::initialize()
@@ -181,6 +182,21 @@ bool LegionHIDMotionSource::poll(MotionSample& sample)
         if (!legion_protocol::decode_report(report, selected_side_, sample,
                                             timestamp))
             continue;
+
+        if (legion_protocol::has_known_gyro_glitch(report, selected_side_))
+        {
+            ++gyro_glitch_count_;
+            if (gyro_glitch_count_ == 1 || gyro_glitch_count_ % 100 == 0)
+                std::cerr << "Discarded known Legion controller gyro glitch ("
+                          << gyro_glitch_count_ << " total)\n";
+            if (!have_valid_gyro_)
+                continue;
+            sample.gyro = last_valid_gyro_;
+        } else
+        {
+            last_valid_gyro_ = sample.gyro;
+            have_valid_gyro_ = true;
+        }
 
         sample.dt_seconds = have_timestamp_
                                 ? legion_protocol::timestamp_delta_seconds(

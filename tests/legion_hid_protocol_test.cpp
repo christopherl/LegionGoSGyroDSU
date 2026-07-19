@@ -44,6 +44,13 @@ auto main() -> int
     assert(near(sample.gyro.x, -500 * 0.001065));
     assert(near(sample.gyro.y, 600 * 0.001065));
     assert(near(sample.gyro.z, 400 * 0.001065));
+    assert(!has_known_gyro_glitch(report, ControllerSide::Right));
+
+    put_be_i16(report, 56, 255);
+    assert(has_known_gyro_glitch(report, ControllerSide::Right));
+    put_be_i16(report, 56, -255);
+    assert(has_known_gyro_glitch(report, ControllerSide::Right));
+    put_be_i16(report, 56, -500);
 
     assert(near(timestamp_delta_seconds(0xFE, 0x02), 4 * 0.008));
     assert(is_supported_product(0x6182));

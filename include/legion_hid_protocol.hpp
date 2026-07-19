@@ -24,6 +24,7 @@ auto initialization_commands(ControllerSide side) -> std::vector<Command>;
 auto shutdown_commands(ControllerSide side) -> std::vector<Command>;
 bool decode_report(const Report& report, ControllerSide side,
                    MotionSample& sample, std::uint8_t& timestamp);
+bool has_known_gyro_glitch(const Report& report, ControllerSide side);
 auto timestamp_delta_seconds(std::uint8_t previous, std::uint8_t current)
     -> double;
 } // namespace motion::legion_protocol
