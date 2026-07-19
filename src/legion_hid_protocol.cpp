@@ -7,6 +7,9 @@ namespace motion::legion_protocol
 namespace
 {
 constexpr std::uint8_t MotionReportId = 0x74;
+constexpr std::size_t LeftConnectionStatusOffset = 10;
+constexpr std::size_t RightConnectionStatusOffset = 11;
+constexpr std::uint8_t ConnectedStatusMask = 0x80;
 constexpr double AccelerometerScale = 0.00212;
 constexpr double GyroscopeScale = 0.001065;
 
@@ -122,6 +125,20 @@ bool has_known_gyro_glitch(const Report& report, ControllerSide side)
         if (is_known_gyro_glitch(read_be_i16(report, offset)))
             return true;
     return false;
+}
+
+auto connected_controller_side(const Report& report)
+    -> std::optional<ControllerSide>
+{
+    if (report[0] != MotionReportId)
+        return std::nullopt;
+
+    // The right controller is preferred when both controllers are connected.
+    if ((report[RightConnectionStatusOffset] & ConnectedStatusMask) != 0)
+        return ControllerSide::Right;
+    if ((report[LeftConnectionStatusOffset] & ConnectedStatusMask) != 0)
+        return ControllerSide::Left;
+    return std::nullopt;
 }
 
 auto timestamp_delta_seconds(std::uint8_t previous, std::uint8_t current)

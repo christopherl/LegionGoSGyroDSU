@@ -27,6 +27,7 @@ auto main() -> int
     Report report{};
     report[0] = 0x74;
     report[47] = 0xFE;
+    report[11] = 0x80;
     put_be_i16(report, 48, -100);
     put_be_i16(report, 50, 200);
     put_be_i16(report, 52, -300);
@@ -45,6 +46,14 @@ auto main() -> int
     assert(near(sample.gyro.y, 600 * 0.001065));
     assert(near(sample.gyro.z, 400 * 0.001065));
     assert(!has_known_gyro_glitch(report, ControllerSide::Right));
+    assert(connected_controller_side(report) == ControllerSide::Right);
+
+    report[11] = 0;
+    report[10] = 0x80;
+    assert(connected_controller_side(report) == ControllerSide::Left);
+    report[10] = 0;
+    assert(!connected_controller_side(report));
+    report[11] = 0x80;
 
     put_be_i16(report, 56, 255);
     assert(has_known_gyro_glitch(report, ControllerSide::Right));

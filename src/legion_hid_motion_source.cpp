@@ -25,6 +25,7 @@ constexpr std::uint16_t LenovoVendorId = 0x17EF;
 constexpr int ReadTimeoutMilliseconds = 1000;
 constexpr int ReconnectAttempts = 3;
 constexpr auto ReconnectDelay = std::chrono::milliseconds(500);
+constexpr std::uint32_t MissingControllerReportLimit = 125;
 
 bool is_legion_vendor_interface(int fd)
 {
@@ -81,6 +82,7 @@ void LegionHIDMotionSource::close_device()
     fd_ = -1;
     have_timestamp_ = false;
     have_valid_gyro_ = false;
+    missing_controller_reports_ = 0;
 }
 
 bool LegionHIDMotionSource::initialize()
@@ -146,6 +148,27 @@ bool LegionHIDMotionSource::send_initialization_packets()
     return true;
 }
 
+bool LegionHIDMotionSource::switch_selected_side(
+    legion_protocol::ControllerSide side)
+{
+    for (const auto& command :
+         legion_protocol::shutdown_commands(selected_side_))
+        static_cast<void>(write(fd_, command.data(), command.size()));
+
+    selected_side_ = side;
+    have_timestamp_ = false;
+    have_valid_gyro_ = false;
+    if (!send_initialization_packets())
+        return false;
+
+    std::cout << "Using "
+              << (selected_side_ == legion_protocol::ControllerSide::Right
+                      ? "right"
+                      : "left")
+              << " Legion controller IMU\n";
+    return true;
+}
+
 bool LegionHIDMotionSource::poll(MotionSample& sample)
 {
     while (fd_ >= 0)
@@ -175,6 +198,27 @@ bool LegionHIDMotionSource::poll(MotionSample& sample)
             if (reconnect())
                 continue;
             return false;
+        }
+
+        const auto connected_side =
+            legion_protocol::connected_controller_side(report);
+        if (!connected_side)
+        {
+            ++missing_controller_reports_;
+            if (missing_controller_reports_ < MissingControllerReportLimit)
+                continue;
+            std::cerr << "No connected Legion controller reported by HID\n";
+            if (reconnect())
+                continue;
+            return false;
+        }
+        missing_controller_reports_ = 0;
+
+        if (*connected_side != selected_side_)
+        {
+            if (!switch_selected_side(*connected_side) && !reconnect())
+                return false;
+            continue;
         }
 
         std::uint8_t timestamp = 0;

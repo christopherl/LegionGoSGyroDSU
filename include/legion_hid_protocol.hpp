@@ -5,6 +5,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace motion::legion_protocol
@@ -25,6 +26,8 @@ auto shutdown_commands(ControllerSide side) -> std::vector<Command>;
 bool decode_report(const Report& report, ControllerSide side,
                    MotionSample& sample, std::uint8_t& timestamp);
 bool has_known_gyro_glitch(const Report& report, ControllerSide side);
+auto connected_controller_side(const Report& report)
+    -> std::optional<ControllerSide>;
 auto timestamp_delta_seconds(std::uint8_t previous, std::uint8_t current)
     -> double;
 bool is_plausible_timestamp_delta(double device_delta_seconds,
