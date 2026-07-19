@@ -28,7 +28,8 @@ echo "Installing LegionGoSGyroDSU..."
 sudo mkdir -p /LegionGoSGyroDSU
 cd /LegionGoSGyroDSU
 
-sudo wget https://github.com/Sooly890/LegionGoSGyroDSU/releases/latest/download/LegionGoSGyroDSU.tar.gz
+DOWNLOAD_URL="${LGSDSU_DOWNLOAD_URL:-https://github.com/Sooly890/LegionGoSGyroDSU/releases/latest/download/LegionGoSGyroDSU.tar.gz}"
+sudo wget --output-document LegionGoSGyroDSU.tar.gz -- "$DOWNLOAD_URL"
 
 sudo tar -xzvf LegionGoSGyroDSU.tar.gz
 sudo rm -f LegionGoSGyroDSU.tar.gz
