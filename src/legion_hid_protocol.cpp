@@ -7,6 +7,10 @@ namespace motion::legion_protocol
 namespace
 {
 constexpr std::uint8_t MotionReportId = 0x74;
+// hidraw prepends the kernel-visible numbered report ID (0x04) as byte 0;
+// the Lenovo-defined motion report tag follows at a fixed offset within that
+// report rather than replacing it.
+constexpr std::size_t MotionReportIdOffset = 2;
 constexpr std::size_t LeftMotionDataBegin = 35;
 constexpr std::size_t LeftMotionDataEnd = 47;
 constexpr std::size_t RightMotionDataBegin = 48;
@@ -104,7 +108,7 @@ auto shutdown_commands(ControllerSide side) -> std::vector<Command>
 bool decode_report(const Report& report, ControllerSide side,
                    MotionSample& sample, std::uint8_t& timestamp)
 {
-    if (report[0] != MotionReportId)
+    if (report[MotionReportIdOffset] != MotionReportId)
         return false;
 
     if (side == ControllerSide::Left)
@@ -141,7 +145,7 @@ bool decode_report(const Report& report, ControllerSide side,
 
 bool has_known_gyro_glitch(const Report& report, ControllerSide side)
 {
-    if (report[0] != MotionReportId)
+    if (report[MotionReportIdOffset] != MotionReportId)
         return false;
 
     const std::array<std::size_t, 3> offsets =
@@ -157,7 +161,7 @@ bool has_known_gyro_glitch(const Report& report, ControllerSide side)
 auto controller_side_with_motion_data(const Report& report)
     -> std::optional<ControllerSide>
 {
-    if (report[0] != MotionReportId)
+    if (report[MotionReportIdOffset] != MotionReportId)
         return std::nullopt;
 
     // The public report layout documents the IMU payload but no portable

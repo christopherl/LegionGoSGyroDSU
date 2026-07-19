@@ -25,7 +25,7 @@ auto main() -> int
     using namespace motion::legion_protocol;
 
     Report report{};
-    report[0] = 0x74;
+    report[2] = 0x74;
     report[47] = 0xFE;
     put_be_i16(report, 48, -100);
     put_be_i16(report, 50, 200);
@@ -48,7 +48,7 @@ auto main() -> int
     assert(controller_side_with_motion_data(report) == ControllerSide::Right);
 
     Report empty_report{};
-    empty_report[0] = 0x74;
+    empty_report[2] = 0x74;
     assert(!controller_side_with_motion_data(empty_report));
 
     put_be_i16(report, 56, 255);
@@ -58,7 +58,7 @@ auto main() -> int
     put_be_i16(report, 56, -500);
 
     Report left_report{};
-    left_report[0] = 0x74;
+    left_report[2] = 0x74;
     put_be_i16(left_report, 35, 100);
     put_be_i16(left_report, 37, -200);
     put_be_i16(left_report, 39, 300);
@@ -94,7 +94,7 @@ auto main() -> int
     assert(shutdown[0][3] == 0x07);
     assert(shutdown[0][5] == 0x01);
 
-    report[0] = 0x01;
+    report[2] = 0x01;
     assert(!decode_report(report, ControllerSide::Right, sample, timestamp));
     return 0;
 }
