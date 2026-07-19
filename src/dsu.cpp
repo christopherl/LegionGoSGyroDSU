@@ -26,6 +26,8 @@ DSUClient::DSUClient(uint32_t client_id, uint32_t server_id,
 
 void DSUClient::ForwardReq(Header* header, const std::vector<uint8_t>& payload)
 {
+    RefreshLifetime();
+
     switch (header->event)
     {
     case dsu::EventType::ProtocolVersionInfo: {
@@ -270,9 +272,18 @@ DSUServer::DSUServer(asio::io_context& io_context, std::string ip_addr, int port
 
 void DSUServer::Update()
 {
-    for (auto& client : clients_)
+    for (auto client = clients_.begin(); client != clients_.end();)
     {
-        client.second->UpdateControllers();
+        if (!client->second || client->second->IsExpired())
+        {
+            std::cout << "DSU client " << client->first
+                      << " expired due to inactivity\n";
+            client = clients_.erase(client);
+            continue;
+        }
+
+        client->second->UpdateControllers();
+        ++client;
     }
 }
 

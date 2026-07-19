@@ -2,6 +2,7 @@
 
 #include <asio.hpp>
 #include <asio/ip/udp.hpp>
+#include <chrono>
 #include <cstdint>
 #include <mutex>
 #include <unordered_map>
@@ -218,6 +219,22 @@ class DSUClient
 
     void Send(std::vector<uint8_t> packet);
     void UpdateControllers();
+
+    [[nodiscard]] auto IsExpired() const -> bool
+    {
+        return std::chrono::steady_clock::now() - last_seen_ > ClientTimeout;
+    }
+
+    void RefreshLifetime()
+    {
+        last_seen_ = std::chrono::steady_clock::now();
+    }
+
+    std::chrono::steady_clock::time_point last_seen_ =
+        std::chrono::steady_clock::now();
+
+    inline static constexpr auto ClientTimeout = std::chrono::seconds(5);
+
     // 'D' 'S' 'U' 'S' packed into uint32_t, but flipped for little endian
     inline static const uint32_t DSUS = 0x53555344;
 
