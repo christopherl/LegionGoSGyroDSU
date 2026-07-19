@@ -1,6 +1,7 @@
 #include "legion_hid_protocol.hpp"
 
 #include <array>
+#include <cmath>
 
 namespace motion::legion_protocol
 {
@@ -22,6 +23,10 @@ constexpr double AccelerometerScale = 0.00212;
 // angular velocity was ~57x too small, so clients received motion data but
 // any resulting orientation change was imperceptible.
 constexpr double GyroscopeScale = 0.001065 * 57.29578;
+// Match the existing IIO backend: suppress residual sensor bias below
+// 0.16 degrees/second on each axis. Keeping this alongside the HID scaling
+// makes the unit and the point at which the threshold is applied explicit.
+constexpr double GyroscopeDeadzoneDegreesPerSecond = 0.16;
 
 // Controller-local orientation relative to the normalized motion frame. Keep
 // these signs separate from sensor scaling and the user-configurable DSU
@@ -62,6 +67,13 @@ bool has_motion_data(const Report& report, std::size_t begin, std::size_t end)
         if (report[offset] != 0)
             return true;
     return false;
+}
+
+void apply_gyroscope_deadzone(MotionSample& sample)
+{
+    for (auto* axis : {&sample.gyro.x, &sample.gyro.y, &sample.gyro.z})
+        if (std::abs(*axis) < GyroscopeDeadzoneDegreesPerSecond)
+            *axis = 0.0;
 }
 
 auto enable_imu(std::uint8_t controller) -> Command
@@ -145,6 +157,7 @@ bool decode_report(const Report& report, ControllerSide side,
             read_be_i16(report, 58) * GyroscopeScale * RightGyroscopeSigns[1],
             read_be_i16(report, 54) * GyroscopeScale * RightGyroscopeSigns[2]};
     }
+    apply_gyroscope_deadzone(sample);
     return true;
 }
 

@@ -49,6 +49,19 @@ auto main() -> int
     assert(!has_known_gyro_glitch(report, ControllerSide::Right));
     assert(controller_side_with_motion_data(report) == ControllerSide::Right);
 
+    // The HID backend uses the same 0.16 degrees/second per-axis deadzone as
+    // the IIO backend. Two raw counts fall inside it; three remain observable.
+    put_be_i16(report, 56, 2);
+    put_be_i16(report, 58, -2);
+    put_be_i16(report, 54, 3);
+    assert(decode_report(report, ControllerSide::Right, sample, timestamp));
+    assert(near(sample.gyro.x, 0.0));
+    assert(near(sample.gyro.y, 0.0));
+    assert(near(sample.gyro.z, 3 * GyroscopeScale));
+    put_be_i16(report, 54, 400);
+    put_be_i16(report, 56, -500);
+    put_be_i16(report, 58, 600);
+
     Report empty_report{};
     empty_report[2] = 0x74;
     assert(!controller_side_with_motion_data(empty_report));
