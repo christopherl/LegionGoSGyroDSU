@@ -27,4 +27,6 @@ bool decode_report(const Report& report, ControllerSide side,
 bool has_known_gyro_glitch(const Report& report, ControllerSide side);
 auto timestamp_delta_seconds(std::uint8_t previous, std::uint8_t current)
     -> double;
+bool is_plausible_timestamp_delta(double device_delta_seconds,
+                                  double host_delta_seconds);
 } // namespace motion::legion_protocol

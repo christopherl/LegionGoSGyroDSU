@@ -13,6 +13,9 @@ constexpr double GyroscopeScale = 0.001065;
 // Assumption: one timestamp count represents 8 ms. Public captures establish
 // the counter layout but do not formally specify its clock period.
 constexpr double TimestampTickSeconds = 0.008;
+constexpr double MaximumTimestampDeltaSeconds = 0.250;
+constexpr double MinimumHostRatio = 0.25;
+constexpr double MaximumHostRatio = 4.0;
 
 constexpr std::uint8_t LeftController = 0x03;
 constexpr std::uint8_t RightController = 0x04;
@@ -126,5 +129,18 @@ auto timestamp_delta_seconds(std::uint8_t previous, std::uint8_t current)
 {
     const auto ticks = static_cast<std::uint8_t>(current - previous);
     return static_cast<double>(ticks) * TimestampTickSeconds;
+}
+
+bool is_plausible_timestamp_delta(double device_delta_seconds,
+                                  double host_delta_seconds)
+{
+    if (device_delta_seconds <= 0.0 ||
+        device_delta_seconds > MaximumTimestampDeltaSeconds)
+        return false;
+    if (host_delta_seconds <= 0.0)
+        return true;
+
+    const auto ratio = device_delta_seconds / host_delta_seconds;
+    return ratio >= MinimumHostRatio && ratio <= MaximumHostRatio;
 }
 } // namespace motion::legion_protocol

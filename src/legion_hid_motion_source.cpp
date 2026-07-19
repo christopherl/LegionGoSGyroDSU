@@ -198,11 +198,35 @@ bool LegionHIDMotionSource::poll(MotionSample& sample)
             have_valid_gyro_ = true;
         }
 
-        sample.dt_seconds = have_timestamp_
-                                ? legion_protocol::timestamp_delta_seconds(
-                                      previous_timestamp_, timestamp)
-                                : 0.0;
+        const auto host_now = std::chrono::steady_clock::now();
+        if (have_timestamp_)
+        {
+            const auto device_delta =
+                legion_protocol::timestamp_delta_seconds(previous_timestamp_,
+                                                          timestamp);
+            const auto host_delta =
+                std::chrono::duration<double>(host_now - previous_host_time_)
+                    .count();
+            if (legion_protocol::is_plausible_timestamp_delta(device_delta,
+                                                              host_delta))
+            {
+                sample.dt_seconds = device_delta;
+            } else
+            {
+                sample.dt_seconds = host_delta;
+                ++timestamp_fallback_count_;
+                if (timestamp_fallback_count_ == 1 ||
+                    timestamp_fallback_count_ % 100 == 0)
+                    std::cerr << "Using host timing for implausible Legion HID "
+                                 "timestamp ("
+                              << timestamp_fallback_count_ << " total)\n";
+            }
+        } else
+        {
+            sample.dt_seconds = 0.0;
+        }
         previous_timestamp_ = timestamp;
+        previous_host_time_ = host_now;
         have_timestamp_ = true;
         return true;
     }

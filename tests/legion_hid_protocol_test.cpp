@@ -53,6 +53,10 @@ auto main() -> int
     put_be_i16(report, 56, -500);
 
     assert(near(timestamp_delta_seconds(0xFE, 0x02), 4 * 0.008));
+    assert(is_plausible_timestamp_delta(0.008, 0.008));
+    assert(!is_plausible_timestamp_delta(0.0, 0.008));
+    assert(!is_plausible_timestamp_delta(0.256, 0.256));
+    assert(!is_plausible_timestamp_delta(0.008, 1.0));
     assert(is_supported_product(0x6182));
     assert(is_supported_product(0x61EE));
     assert(!is_supported_product(0x1234));
