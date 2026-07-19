@@ -4,8 +4,8 @@
 #include <asio/ip/udp.hpp>
 #include <chrono>
 #include <cstdint>
+#include <map>
 #include <mutex>
-#include <unordered_map>
 
 namespace dsu
 {
@@ -266,8 +266,7 @@ class DSUServer
     void StartReceive();
 
     // DO NOT PUT THIS BELOW SOCKET
-    std::unordered_map<asio::ip::udp::endpoint, std::shared_ptr<DSUClient>>
-        clients_;
+    std::map<asio::ip::udp::endpoint, std::shared_ptr<DSUClient>> clients_;
 
     std::shared_ptr<asio::ip::udp::socket> socket_;
     asio::ip::udp::endpoint remote_endpoint_;
