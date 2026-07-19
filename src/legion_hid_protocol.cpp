@@ -13,6 +13,14 @@ constexpr std::uint8_t ConnectedStatusMask = 0x80;
 constexpr double AccelerometerScale = 0.00212;
 constexpr double GyroscopeScale = 0.001065;
 
+// Controller-local orientation relative to the normalized motion frame. Keep
+// these signs separate from sensor scaling and the user-configurable DSU
+// matrices so they can be adjusted after validation on additional firmware.
+constexpr std::array<double, 3> LeftAccelerometerSigns = {-1.0, -1.0, -1.0};
+constexpr std::array<double, 3> LeftGyroscopeSigns = {-1.0, -1.0, -1.0};
+constexpr std::array<double, 3> RightAccelerometerSigns = {-1.0, -1.0, 1.0};
+constexpr std::array<double, 3> RightGyroscopeSigns = {-1.0, -1.0, 1.0};
+
 // Assumption: one timestamp count represents 8 ms. Public captures establish
 // the counter layout but do not formally specify its clock period.
 constexpr double TimestampTickSeconds = 0.008;
@@ -93,21 +101,31 @@ bool decode_report(const Report& report, ControllerSide side,
     if (side == ControllerSide::Left)
     {
         timestamp = report[34];
-        sample.accel = {read_be_i16(report, 35) * AccelerometerScale,
-                        read_be_i16(report, 39) * AccelerometerScale,
-                        read_be_i16(report, 37) * AccelerometerScale};
-        sample.gyro = {read_be_i16(report, 41) * GyroscopeScale,
-                       read_be_i16(report, 45) * GyroscopeScale,
-                       read_be_i16(report, 43) * GyroscopeScale};
+        sample.accel = {
+            read_be_i16(report, 35) * AccelerometerScale *
+                LeftAccelerometerSigns[0],
+            read_be_i16(report, 39) * AccelerometerScale *
+                LeftAccelerometerSigns[1],
+            read_be_i16(report, 37) * AccelerometerScale *
+                LeftAccelerometerSigns[2]};
+        sample.gyro = {
+            read_be_i16(report, 41) * GyroscopeScale * LeftGyroscopeSigns[0],
+            read_be_i16(report, 45) * GyroscopeScale * LeftGyroscopeSigns[1],
+            read_be_i16(report, 43) * GyroscopeScale * LeftGyroscopeSigns[2]};
     } else
     {
         timestamp = report[47];
-        sample.accel = {read_be_i16(report, 50) * AccelerometerScale,
-                        read_be_i16(report, 52) * AccelerometerScale,
-                        read_be_i16(report, 48) * AccelerometerScale};
-        sample.gyro = {read_be_i16(report, 56) * GyroscopeScale,
-                       read_be_i16(report, 58) * GyroscopeScale,
-                       read_be_i16(report, 54) * GyroscopeScale};
+        sample.accel = {
+            read_be_i16(report, 50) * AccelerometerScale *
+                RightAccelerometerSigns[0],
+            read_be_i16(report, 52) * AccelerometerScale *
+                RightAccelerometerSigns[1],
+            read_be_i16(report, 48) * AccelerometerScale *
+                RightAccelerometerSigns[2]};
+        sample.gyro = {
+            read_be_i16(report, 56) * GyroscopeScale * RightGyroscopeSigns[0],
+            read_be_i16(report, 58) * GyroscopeScale * RightGyroscopeSigns[1],
+            read_be_i16(report, 54) * GyroscopeScale * RightGyroscopeSigns[2]};
     }
     return true;
 }

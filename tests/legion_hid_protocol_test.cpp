@@ -39,11 +39,11 @@ auto main() -> int
     std::uint8_t timestamp = 0;
     assert(decode_report(report, ControllerSide::Right, sample, timestamp));
     assert(timestamp == 0xFE);
-    assert(near(sample.accel.x, 200 * 0.00212));
-    assert(near(sample.accel.y, -300 * 0.00212));
+    assert(near(sample.accel.x, -200 * 0.00212));
+    assert(near(sample.accel.y, 300 * 0.00212));
     assert(near(sample.accel.z, -100 * 0.00212));
-    assert(near(sample.gyro.x, -500 * 0.001065));
-    assert(near(sample.gyro.y, 600 * 0.001065));
+    assert(near(sample.gyro.x, 500 * 0.001065));
+    assert(near(sample.gyro.y, -600 * 0.001065));
     assert(near(sample.gyro.z, 400 * 0.001065));
     assert(!has_known_gyro_glitch(report, ControllerSide::Right));
     assert(connected_controller_side(report) == ControllerSide::Right);
@@ -60,6 +60,22 @@ auto main() -> int
     put_be_i16(report, 56, -255);
     assert(has_known_gyro_glitch(report, ControllerSide::Right));
     put_be_i16(report, 56, -500);
+
+    Report left_report{};
+    left_report[0] = 0x74;
+    put_be_i16(left_report, 35, 100);
+    put_be_i16(left_report, 37, -200);
+    put_be_i16(left_report, 39, 300);
+    put_be_i16(left_report, 41, -400);
+    put_be_i16(left_report, 43, 500);
+    put_be_i16(left_report, 45, -600);
+    assert(decode_report(left_report, ControllerSide::Left, sample, timestamp));
+    assert(near(sample.accel.x, -100 * 0.00212));
+    assert(near(sample.accel.y, -300 * 0.00212));
+    assert(near(sample.accel.z, 200 * 0.00212));
+    assert(near(sample.gyro.x, 400 * 0.001065));
+    assert(near(sample.gyro.y, 600 * 0.001065));
+    assert(near(sample.gyro.z, -500 * 0.001065));
 
     assert(near(timestamp_delta_seconds(0xFE, 0x02), 4 * 0.008));
     assert(is_plausible_timestamp_delta(0.008, 0.008));
