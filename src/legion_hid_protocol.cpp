@@ -54,18 +54,23 @@ bool is_supported_product(std::uint16_t product_id)
     return false;
 }
 
-auto initialization_commands() -> std::vector<Command>
+namespace
 {
-    return {enable_imu(LeftController),
-            enable_high_quality_report(LeftController),
-            enable_imu(RightController),
-            enable_high_quality_report(RightController)};
+auto controller_id(ControllerSide side) -> std::uint8_t
+{
+    return side == ControllerSide::Left ? LeftController : RightController;
+}
+} // namespace
+
+auto initialization_commands(ControllerSide side) -> std::vector<Command>
+{
+    const auto controller = controller_id(side);
+    return {enable_imu(controller), enable_high_quality_report(controller)};
 }
 
-auto shutdown_commands() -> std::vector<Command>
+auto shutdown_commands(ControllerSide side) -> std::vector<Command>
 {
-    return {disable_high_quality_report(LeftController),
-            disable_high_quality_report(RightController)};
+    return {disable_high_quality_report(controller_id(side))};
 }
 
 bool decode_report(const Report& report, ControllerSide side,

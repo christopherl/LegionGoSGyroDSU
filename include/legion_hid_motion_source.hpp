@@ -1,5 +1,6 @@
 #pragma once
 
+#include "legion_hid_protocol.hpp"
 #include "motion_source.hpp"
 
 #include <cstdint>
@@ -27,5 +28,7 @@ class LegionHIDMotionSource final : public MotionSource
     int fd_ = -1;
     bool have_timestamp_ = false;
     std::uint8_t previous_timestamp_ = 0;
+    legion_protocol::ControllerSide selected_side_ =
+        legion_protocol::ControllerSide::Right;
 };
 } // namespace motion

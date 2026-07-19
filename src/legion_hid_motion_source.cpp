@@ -73,7 +73,8 @@ void LegionHIDMotionSource::close_device()
 {
     if (fd_ >= 0)
     {
-        for (const auto& command : legion_protocol::shutdown_commands())
+        for (const auto& command :
+             legion_protocol::shutdown_commands(selected_side_))
             static_cast<void>(write(fd_, command.data(), command.size()));
         close(fd_);
     }
@@ -130,7 +131,8 @@ bool LegionHIDMotionSource::reconnect()
 
 bool LegionHIDMotionSource::send_initialization_packets()
 {
-    for (const auto& command : legion_protocol::initialization_commands())
+    for (const auto& command :
+         legion_protocol::initialization_commands(selected_side_))
     {
         const auto written = write(fd_, command.data(), command.size());
         if (written != static_cast<ssize_t>(command.size()))
@@ -175,11 +177,9 @@ bool LegionHIDMotionSource::poll(MotionSample& sample)
         }
 
         std::uint8_t timestamp = 0;
-        // A DSU slot carries one IMU. The right controller is the default
-        // physical source; this policy is intentionally separate from decoding.
-        if (!legion_protocol::decode_report(
-                report, legion_protocol::ControllerSide::Right, sample,
-                timestamp))
+        // A DSU slot carries one IMU. Only the selected controller is enabled.
+        if (!legion_protocol::decode_report(report, selected_side_, sample,
+                                            timestamp))
             continue;
 
         sample.dt_seconds = have_timestamp_

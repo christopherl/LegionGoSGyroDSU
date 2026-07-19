@@ -50,8 +50,13 @@ auto main() -> int
     assert(is_supported_product(0x61EE));
     assert(!is_supported_product(0x1234));
 
-    const auto shutdown = shutdown_commands();
-    assert(shutdown.size() == 2);
+    const auto initialization = initialization_commands(ControllerSide::Right);
+    assert(initialization.size() == 2);
+    assert(initialization[0][4] == 0x04);
+
+    const auto shutdown = shutdown_commands(ControllerSide::Right);
+    assert(shutdown.size() == 1);
+    assert(shutdown[0][4] == 0x04);
     assert(shutdown[0][3] == 0x07);
     assert(shutdown[0][5] == 0x01);
 

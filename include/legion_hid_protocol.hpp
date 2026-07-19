@@ -20,8 +20,8 @@ enum class ControllerSide
 };
 
 bool is_supported_product(std::uint16_t product_id);
-auto initialization_commands() -> std::vector<Command>;
-auto shutdown_commands() -> std::vector<Command>;
+auto initialization_commands(ControllerSide side) -> std::vector<Command>;
+auto shutdown_commands(ControllerSide side) -> std::vector<Command>;
 bool decode_report(const Report& report, ControllerSide side,
                    MotionSample& sample, std::uint8_t& timestamp);
 auto timestamp_delta_seconds(std::uint8_t previous, std::uint8_t current)
