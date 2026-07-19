@@ -7,9 +7,10 @@ namespace motion::legion_protocol
 namespace
 {
 constexpr std::uint8_t MotionReportId = 0x74;
-constexpr std::size_t LeftConnectionStatusOffset = 10;
-constexpr std::size_t RightConnectionStatusOffset = 11;
-constexpr std::uint8_t ConnectedStatusMask = 0x80;
+constexpr std::size_t LeftMotionDataBegin = 35;
+constexpr std::size_t LeftMotionDataEnd = 47;
+constexpr std::size_t RightMotionDataBegin = 48;
+constexpr std::size_t RightMotionDataEnd = 60;
 constexpr double AccelerometerScale = 0.00212;
 constexpr double GyroscopeScale = 0.001065;
 
@@ -44,6 +45,14 @@ auto read_be_i16(const Report& report, std::size_t offset) -> std::int16_t
 bool is_known_gyro_glitch(std::int16_t value)
 {
     return value == 254 || value == 255 || value == -254 || value == -255;
+}
+
+bool has_motion_data(const Report& report, std::size_t begin, std::size_t end)
+{
+    for (auto offset = begin; offset < end; ++offset)
+        if (report[offset] != 0)
+            return true;
+    return false;
 }
 
 auto enable_imu(std::uint8_t controller) -> Command
@@ -145,16 +154,19 @@ bool has_known_gyro_glitch(const Report& report, ControllerSide side)
     return false;
 }
 
-auto connected_controller_side(const Report& report)
+auto controller_side_with_motion_data(const Report& report)
     -> std::optional<ControllerSide>
 {
     if (report[0] != MotionReportId)
         return std::nullopt;
 
-    // The right controller is preferred when both controllers are connected.
-    if ((report[RightConnectionStatusOffset] & ConnectedStatusMask) != 0)
+    // The public report layout documents the IMU payload but no portable
+    // connection-status bits. Treat a non-zero motion payload as available;
+    // gravity makes a valid stationary accelerometer payload non-zero too.
+    // Prefer the right controller when both payloads are present.
+    if (has_motion_data(report, RightMotionDataBegin, RightMotionDataEnd))
         return ControllerSide::Right;
-    if ((report[LeftConnectionStatusOffset] & ConnectedStatusMask) != 0)
+    if (has_motion_data(report, LeftMotionDataBegin, LeftMotionDataEnd))
         return ControllerSide::Left;
     return std::nullopt;
 }

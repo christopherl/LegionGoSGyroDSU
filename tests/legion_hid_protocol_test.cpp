@@ -27,7 +27,6 @@ auto main() -> int
     Report report{};
     report[0] = 0x74;
     report[47] = 0xFE;
-    report[11] = 0x80;
     put_be_i16(report, 48, -100);
     put_be_i16(report, 50, 200);
     put_be_i16(report, 52, -300);
@@ -46,14 +45,11 @@ auto main() -> int
     assert(near(sample.gyro.y, -600 * 0.001065));
     assert(near(sample.gyro.z, 400 * 0.001065));
     assert(!has_known_gyro_glitch(report, ControllerSide::Right));
-    assert(connected_controller_side(report) == ControllerSide::Right);
+    assert(controller_side_with_motion_data(report) == ControllerSide::Right);
 
-    report[11] = 0;
-    report[10] = 0x80;
-    assert(connected_controller_side(report) == ControllerSide::Left);
-    report[10] = 0;
-    assert(!connected_controller_side(report));
-    report[11] = 0x80;
+    Report empty_report{};
+    empty_report[0] = 0x74;
+    assert(!controller_side_with_motion_data(empty_report));
 
     put_be_i16(report, 56, 255);
     assert(has_known_gyro_glitch(report, ControllerSide::Right));
@@ -69,6 +65,8 @@ auto main() -> int
     put_be_i16(left_report, 41, -400);
     put_be_i16(left_report, 43, 500);
     put_be_i16(left_report, 45, -600);
+    assert(controller_side_with_motion_data(left_report) ==
+           ControllerSide::Left);
     assert(decode_report(left_report, ControllerSide::Left, sample, timestamp));
     assert(near(sample.accel.x, -100 * 0.00212));
     assert(near(sample.accel.y, -300 * 0.00212));
