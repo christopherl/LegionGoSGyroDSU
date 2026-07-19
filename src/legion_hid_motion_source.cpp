@@ -72,7 +72,11 @@ LegionHIDMotionSource::~LegionHIDMotionSource()
 void LegionHIDMotionSource::close_device()
 {
     if (fd_ >= 0)
+    {
+        for (const auto& command : legion_protocol::shutdown_commands())
+            static_cast<void>(write(fd_, command.data(), command.size()));
         close(fd_);
+    }
     fd_ = -1;
     have_timestamp_ = false;
 }
@@ -146,7 +150,7 @@ bool LegionHIDMotionSource::poll(MotionSample& sample)
         pollfd descriptor{fd_, POLLIN, 0};
         const int ready = ::poll(&descriptor, 1, ReadTimeoutMilliseconds);
         if (ready < 0 && errno == EINTR)
-            continue;
+            return false;
         if (ready <= 0 || (descriptor.revents & (POLLERR | POLLHUP | POLLNVAL)))
         {
             if (ready == 0)

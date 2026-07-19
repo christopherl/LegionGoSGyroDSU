@@ -50,6 +50,11 @@ auto main() -> int
     assert(is_supported_product(0x61EE));
     assert(!is_supported_product(0x1234));
 
+    const auto shutdown = shutdown_commands();
+    assert(shutdown.size() == 2);
+    assert(shutdown[0][3] == 0x07);
+    assert(shutdown[0][5] == 0x01);
+
     report[0] = 0x01;
     assert(!decode_report(report, ControllerSide::Right, sample, timestamp));
     return 0;

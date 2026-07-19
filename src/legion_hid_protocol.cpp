@@ -39,6 +39,11 @@ auto enable_high_quality_report(std::uint8_t controller) -> Command
     // controller firmware independently of existing implementations.
     return {0x05, 0x06, 0x6A, 0x07, controller, 0x02, 0x01};
 }
+
+auto disable_high_quality_report(std::uint8_t controller) -> Command
+{
+    return {0x05, 0x06, 0x6A, 0x07, controller, 0x01, 0x01};
+}
 } // namespace
 
 bool is_supported_product(std::uint16_t product_id)
@@ -55,6 +60,12 @@ auto initialization_commands() -> std::vector<Command>
             enable_high_quality_report(LeftController),
             enable_imu(RightController),
             enable_high_quality_report(RightController)};
+}
+
+auto shutdown_commands() -> std::vector<Command>
+{
+    return {disable_high_quality_report(LeftController),
+            disable_high_quality_report(RightController)};
 }
 
 bool decode_report(const Report& report, ControllerSide side,

@@ -17,6 +17,7 @@
 #include "setting.hpp"
 
 #include <atomic>
+#include <csignal>
 #include <memory>
 #include <stdexcept>
 #include <string_view>
@@ -64,14 +65,15 @@ auto make_motion_source(const std::string& requested)
 
 std::atomic<bool> running{true};
 
-void sigint_handler(int)
+void signal_handler(int)
 {
     running = false;
 }
 
 auto main(int argc, char* argv[]) -> int
 {
-    std::signal(SIGINT, sigint_handler);
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
 
     std::string motion_source_name;
     try
@@ -178,6 +180,8 @@ auto main(int argc, char* argv[]) -> int
         motion::MotionSample sample;
         if (!motion_source->poll(sample))
         {
+            if (!running)
+                break;
             std::cerr << "Motion source stopped producing samples\n";
             motion_source_failed = true;
             break;
