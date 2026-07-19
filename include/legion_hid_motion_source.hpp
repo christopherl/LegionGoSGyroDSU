@@ -20,6 +20,8 @@ class LegionHIDMotionSource final : public MotionSource
     bool poll(MotionSample& sample) override;
 
   private:
+    void close_device();
+    bool reconnect();
     bool send_initialization_packets();
 
     int fd_ = -1;

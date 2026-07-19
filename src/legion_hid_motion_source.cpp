@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cerrno>
+#include <chrono>
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
@@ -12,6 +13,7 @@
 #include <linux/hidraw.h>
 #include <poll.h>
 #include <sys/ioctl.h>
+#include <thread>
 #include <unistd.h>
 #include <vector>
 
@@ -21,6 +23,8 @@ namespace
 {
 constexpr std::uint16_t LenovoVendorId = 0x17EF;
 constexpr int ReadTimeoutMilliseconds = 1000;
+constexpr int ReconnectAttempts = 3;
+constexpr auto ReconnectDelay = std::chrono::milliseconds(500);
 
 bool is_legion_vendor_interface(int fd)
 {
@@ -62,12 +66,21 @@ auto hidraw_paths() -> std::vector<std::filesystem::path>
 
 LegionHIDMotionSource::~LegionHIDMotionSource()
 {
+    close_device();
+}
+
+void LegionHIDMotionSource::close_device()
+{
     if (fd_ >= 0)
         close(fd_);
+    fd_ = -1;
+    have_timestamp_ = false;
 }
 
 bool LegionHIDMotionSource::initialize()
 {
+    close_device();
+
     for (const auto& path : hidraw_paths())
     {
         const int candidate = open(path.c_str(), O_RDWR | O_CLOEXEC);
@@ -93,6 +106,21 @@ bool LegionHIDMotionSource::initialize()
     }
 
     std::cerr << "No usable Lenovo Legion controller HID interface found\n";
+    return false;
+}
+
+bool LegionHIDMotionSource::reconnect()
+{
+    close_device();
+    for (int attempt = 1; attempt <= ReconnectAttempts; ++attempt)
+    {
+        std::cerr << "Reconnecting Legion HID motion source (attempt "
+                  << attempt << '/' << ReconnectAttempts << ")\n";
+        if (initialize())
+            return true;
+        if (attempt != ReconnectAttempts)
+            std::this_thread::sleep_for(ReconnectDelay);
+    }
     return false;
 }
 
@@ -125,6 +153,8 @@ bool LegionHIDMotionSource::poll(MotionSample& sample)
                 std::cerr << "Timed out waiting for Legion HID motion report\n";
             else
                 std::cerr << "Legion HID device became unavailable\n";
+            if (reconnect())
+                continue;
             return false;
         }
 
@@ -135,6 +165,8 @@ bool LegionHIDMotionSource::poll(MotionSample& sample)
         if (length != static_cast<ssize_t>(report.size()))
         {
             std::cerr << "Invalid Legion HID report length: " << length << '\n';
+            if (reconnect())
+                continue;
             return false;
         }
 

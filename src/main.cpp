@@ -172,12 +172,14 @@ auto main(int argc, char* argv[]) -> int
     iio::Vec3 debug_global_gyro;
 #endif
 
+    bool motion_source_failed = false;
     while (running)
     {
         motion::MotionSample sample;
         if (!motion_source->poll(sample))
         {
             std::cerr << "Motion source stopped producing samples\n";
+            motion_source_failed = true;
             break;
         }
 
@@ -259,5 +261,5 @@ auto main(int argc, char* argv[]) -> int
         }
     }
 
-    return 0;
+    return motion_source_failed ? 1 : 0;
 }
