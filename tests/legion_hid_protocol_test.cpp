@@ -18,6 +18,8 @@ bool near(double actual, double expected)
 {
     return std::abs(actual - expected) < 0.0000001;
 }
+
+constexpr double GyroscopeScale = 0.001065 * 57.29578;
 } // namespace
 
 auto main() -> int
@@ -41,9 +43,9 @@ auto main() -> int
     assert(near(sample.accel.x, -200 * 0.00212));
     assert(near(sample.accel.y, 300 * 0.00212));
     assert(near(sample.accel.z, -100 * 0.00212));
-    assert(near(sample.gyro.x, 500 * 0.001065));
-    assert(near(sample.gyro.y, -600 * 0.001065));
-    assert(near(sample.gyro.z, 400 * 0.001065));
+    assert(near(sample.gyro.x, 500 * GyroscopeScale));
+    assert(near(sample.gyro.y, -600 * GyroscopeScale));
+    assert(near(sample.gyro.z, 400 * GyroscopeScale));
     assert(!has_known_gyro_glitch(report, ControllerSide::Right));
     assert(controller_side_with_motion_data(report) == ControllerSide::Right);
 
@@ -71,9 +73,9 @@ auto main() -> int
     assert(near(sample.accel.x, -100 * 0.00212));
     assert(near(sample.accel.y, -300 * 0.00212));
     assert(near(sample.accel.z, 200 * 0.00212));
-    assert(near(sample.gyro.x, 400 * 0.001065));
-    assert(near(sample.gyro.y, 600 * 0.001065));
-    assert(near(sample.gyro.z, -500 * 0.001065));
+    assert(near(sample.gyro.x, 400 * GyroscopeScale));
+    assert(near(sample.gyro.y, 600 * GyroscopeScale));
+    assert(near(sample.gyro.z, -500 * GyroscopeScale));
 
     assert(near(timestamp_delta_seconds(0xFE, 0x02), 4 * 0.008));
     assert(is_plausible_timestamp_delta(0.008, 0.008));

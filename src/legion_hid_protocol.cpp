@@ -16,7 +16,12 @@ constexpr std::size_t LeftMotionDataEnd = 47;
 constexpr std::size_t RightMotionDataBegin = 48;
 constexpr std::size_t RightMotionDataEnd = 60;
 constexpr double AccelerometerScale = 0.00212;
-constexpr double GyroscopeScale = 0.001065;
+// The raw LSB sensitivity here is 0.001065 rad/s, but the DSU protocol (and
+// the rest of this codebase, see iio.cpp's rad2deg conversion) expects
+// gyroscope values in degrees/second. Without this conversion the reported
+// angular velocity was ~57x too small, so clients received motion data but
+// any resulting orientation change was imperceptible.
+constexpr double GyroscopeScale = 0.001065 * 57.29578;
 
 // Controller-local orientation relative to the normalized motion frame. Keep
 // these signs separate from sensor scaling and the user-configurable DSU
