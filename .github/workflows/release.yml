@@ -1,0 +1,57 @@
+name: Build and publish release
+
+on:
+  push:
+    tags:
+      - "go2-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            build-essential \
+            cmake \
+            pkg-config \
+            libasio-dev \
+            libiio-dev
+
+      - name: Build release package
+        run: scripts/package.sh
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Inspect binary compatibility
+        run: |
+          file build/LegionGoSGyro
+          ldd build/LegionGoSGyro
+          readelf --version-info build/LegionGoSGyro | grep -E "GLIBC|GLIBCXX" || true
+
+      - name: Inspect release archive
+        run: |
+          test -f LegionGoSGyroDSU.tar.gz
+          tar -tzf LegionGoSGyroDSU.tar.gz
+
+      - name: Publish GitHub pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            LegionGoSGyroDSU.tar.gz \
+            --verify-tag \
+            --title "LegionGoSGyroDSU with Legion Go 2 support - ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            --prerelease
