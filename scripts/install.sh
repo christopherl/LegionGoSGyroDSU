@@ -28,13 +28,26 @@ echo "Installing LegionGoSGyroDSU..."
 sudo mkdir -p /LegionGoSGyroDSU
 cd /LegionGoSGyroDSU
 
-DOWNLOAD_URL="${LGSDSU_DOWNLOAD_URL:-https://github.com/Sooly890/LegionGoSGyroDSU/releases/latest/download/LegionGoSGyroDSU.tar.gz}"
-sudo wget --output-document LegionGoSGyroDSU.tar.gz -- "$DOWNLOAD_URL"
+repo="christopherl/legion-go-2-gyro-dsu"
+archive="LegionGoSGyroDSU.tar.gz"
 
-sudo tar -xzvf LegionGoSGyroDSU.tar.gz
-sudo rm -f LegionGoSGyroDSU.tar.gz
+if [ -n "${LGSDSU_DOWNLOAD_URL:-}" ]; then
+    download_url="$LGSDSU_DOWNLOAD_URL"
+else
+    download_url=$(curl -fsSL "https://api.github.com/repos/${repo}/releases?per_page=1" | sed -n 's/.*"browser_download_url": "\(.*\/'"${archive}"'\)".*/\1/p' | head -n 1)
+fi
 
-# fix a mistake I made in packaging, probably will fix it later
+if [ -z "$download_url" ]; then
+    echo "Could not find ${archive} in the latest release for ${repo}."
+    exit 1
+fi
+
+sudo wget --output-document "$archive" -- "$download_url"
+
+sudo tar -xzvf "$archive"
+sudo rm -f "$archive"
+
+# Keep compatibility with archives that contain the upstream build output name.
 if sudo test -f LegionGoSGyro; then
     sudo mv LegionGoSGyro LegionGoSGyroDSU
 fi
