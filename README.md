@@ -1,21 +1,21 @@
 # legion-go-2-gyro-dsu
 
 DSU motion server for Lenovo Legion Go devices on SteamOS-style Linux systems.
+Tested with the Lenovo Legion Go S and Lenovo Legion Go 2.
 
 This project reads gyro and accelerometer data through Linux IIO and exposes it
 through the DSU protocol, so emulators and other DSU-compatible clients can use
 the device motion sensors as controller input.
 
-This repository is a fork of `LegionGoSGyroDSU`. The current service, binary and
-installation directory still use the upstream `LegionGoSGyroDSU` naming
-internally.
-
 ## Credits
 
-This project is based on the original
+This repository is a fork of the original
 [LegionGoSGyroDSU](https://github.com/Sooly890/LegionGoSGyroDSU) project by
 [Sooly890](https://github.com/Sooly890). Thanks to the upstream author and
 contributors for the initial implementation.
+
+The current service, binary and installation directory still use the upstream
+`LegionGoSGyroDSU` naming internally.
 
 ## Features
 
