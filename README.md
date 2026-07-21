@@ -1,112 +1,162 @@
-# LegionGoSGyroDSU
+# legion-go-2-gyro-dsu
 
-A project to enable Motion (Gyro and Accelerometer) DSU for the Legion Go S SteamOS edition.
+DSU motion server for Lenovo Legion Go devices on SteamOS-style Linux systems.
+
+This project reads gyro and accelerometer data through Linux IIO and exposes it
+through the DSU protocol, so emulators and other DSU-compatible clients can use
+the device motion sensors as controller input.
+
+This repository is a fork of `LegionGoSGyroDSU`. The current service, binary and
+installation directory still use the upstream `LegionGoSGyroDSU` naming
+internally.
+
+## Features
+
+- Reads gyroscope and accelerometer data from IIO devices
+- Serves motion data over the DSU protocol
+- Runs as a `systemd` service
+- Supports configurable bind IP, port and sensor orientation matrices
+- Includes an IIO sensor-hub module-load workaround for systems where the
+  motion devices do not appear reliably
 
 ## Installation
 
-To install LegionGoSGyroDSU, ensure you have a user password set (run `passwd` if not), then execute the following command:
+Make sure your user has a password set first. If not, run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Sooly890/LegionGoSGyroDSU/main/scripts/install.sh | bash
+passwd
 ```
 
-**Note:** The project will be installed to `/LegionGoSGyroDSU`. After installation, please reboot your system to ensure the IIO sensors are correctly initialized.
+Then run the installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/christopherl/legion-go-2-gyro-dsu/main/scripts/install.sh | bash
+```
+
+The installer places the project in:
+
+```text
+/LegionGoSGyroDSU
+```
+
+After installation, reboot so the IIO sensor devices are initialized correctly.
+
+The release archive URL is defined in `scripts/install.sh`. If you publish your
+own releases from this fork, update that script to point at this repository.
 
 ## Configuration
 
-You can customize the port, IP, and sensor orientation by editing the service file:
+Configuration is currently done through environment variables in the `systemd`
+service file:
 
 ```bash
 sudo nano /etc/systemd/system/lgsdsu.service
 ```
 
-### Available Options
+| Environment variable  | Default     | Description                                           |
+| --------------------- | ----------- | ----------------------------------------------------- |
+| `LGSDSU_PORT`         | `26760`     | DSU server UDP port                                   |
+| `LGSDSU_IP`           | `127.0.0.1` | Bind IP. Use `0.0.0.0` to allow external clients.     |
+| `LGSDSU_GYRO_MATRIX`  | `-x,-y,z`   | Orientation matrix for the gyroscope                  |
+| `LGSDSU_ACCEL_MATRIX` | `x,z,-y`    | Orientation matrix for the accelerometer              |
 
-| Environment Variable  | Default Value | Description                                           |
-| --------------------- | ------------- | ----------------------------------------------------- |
-| `LGSDSU_PORT`         | `26760`       | The port used by the DSU server.                      |
-| `LGSDSU_IP`           | `127.0.0.1`   | Bind IP. Use `0.0.0.0` to allow external connections. |
-| `LGSDSU_GYRO_MATRIX`  | `-x,-y,z`     | Orientation matrix for the gyroscope.                 |
-| `LGSDSU_ACCEL_MATRIX` | `x,z,-y`      | Orientation matrix for the accelerometer.             |
-
-After making changes, apply them by running:
+After editing the service file, reload and restart the service:
 
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl restart lgsdsu.service
 ```
 
-_Note: Updating the software will overwrite these changes._
+Updates may overwrite manual edits to the service file.
 
-### Sensor Orientation
+## Sensor Orientation
 
-If the directions feel wrong, adjust the matrix values in the service file. The mapping follows:
+If motion directions feel wrong in a client, adjust the gyro and accelerometer
+matrices in `lgsdsu.service`.
 
-- `x`: Pitch
-- `y`: Roll
-- `z`: Yaw
+Matrix values map to DSU axes like this:
 
-The """console""" also uses the accelerometer to calibrate the gyroscope on the fly (it's affected by gravity), so even if you're sure the gyroscope settings are correct the accelerometer settings might not be.
+| Value | Motion axis |
+| ----- | ----------- |
+| `x`   | Pitch       |
+| `y`   | Roll        |
+| `z`   | Yaw         |
+
+Use a minus sign to invert an axis, for example `-x`.
+
+The accelerometer matters too: it can affect gyro calibration because gravity is
+part of the accelerometer reading. If gyro movement looks correct but still
+drifts or calibrates strangely, check the accelerometer matrix as well.
 
 ## Troubleshooting
 
-### The IIO Issue
+### IIO devices are missing
 
-Previously, IIO devices (gyro/accel) sometimes failed to appear. This has been fixed by forcing the `hid_sensor_hub` module to load. If you still encounter issues, you can run:
+The gyro and accelerometer are exposed as IIO devices. If they do not appear,
+run the bundled check script:
 
 ```bash
-/LegionGoSGyroDSU/check.sh
+sudo /LegionGoSGyroDSU/check.sh
 ```
 
-**Technical reason:** The `hid_sensor_hub` kernel module was sometimes lazily loading, so `hid-generic` never left it, I don't know why. The Legion Go S's USB device actually wants `hid-sensor-hub` to load, however the sometimes not working bit was when it didn't request it, I don't know why this is either. The fix simply adds something that requests it to load earlier, so therefore `hid_sensor_hub` does remove `hid-generic`.
+The installer also installs `fix-iio-sensor-hub.conf`, which forces the
+`hid_sensor_hub` module to load early. This works around systems where the
+sensor hub is claimed too late and the IIO devices never appear.
 
-### Root Access
+### Service does not work
 
-This project requires root access to enable buffering mode on IIO devices, which is necessary for high-speed sensor data access.
+Stop the background service and run the binary directly to see its output:
 
-### Additional Troubleshooting
-
-If you cannot figure out the error, try and run the app directly from the terminal.
 ```bash
-# Stop the process in the background 
-sudo systemctl stop lgsdsu
-
-# Run it in terminal
+sudo systemctl stop lgsdsu.service
 sudo /LegionGoSGyroDSU/LegionGoSGyroDSU
-
-# Optionally, start LegionGoSGyroDSU again
-sudo systemctl start lgsdsu
+sudo systemctl start lgsdsu.service
 ```
 
-### Bind port already in use/segfault 
+### Port already in use
 
-Make sure nothing is using the default port (26760), most commonly SteamDeckDSU (uninstalling is the best way), or change the port LegionGoSGyroDSU uses.
+The default DSU port is `26760`. If another DSU server is already using that
+port, such as SteamDeckDSU, stop it or change `LGSDSU_PORT` in the service file.
 
 ## Uninstallation
-
-If you wish to remove the project, run:
 
 ```bash
 sudo /LegionGoSGyroDSU/uninstall.sh
 ```
 
-## Development & Building
+## Development
 
-Building on the Legion Go S itself is not recommended. Use another Arch Linux machine:
+Building directly on the handheld is not recommended. Use another Arch Linux
+machine or a compatible Arch-based environment.
+
+Install dependencies:
 
 ```bash
-# Clone the repository
-git clone https://github.com/Sooly890/LegionGoSGyroDSU
-cd LegionGoSGyroDSU
+sudo pacman -S base-devel cmake asio libiio
+```
 
-# Install dependencies
-sudo pacman -S asio libiio
+Clone and build:
 
-# Build and package
-scripts/build.sh
+```bash
+git clone https://github.com/christopherl/legion-go-2-gyro-dsu.git
+cd legion-go-2-gyro-dsu
+scripts/build.sh Release
+```
+
+Create a release archive:
+
+```bash
 scripts/package.sh
 ```
 
----
+This creates:
 
-_If you encounter any issues, please open an issue on GitHub!_
+```text
+LegionGoSGyroDSU.tar.gz
+```
+
+The archive name is kept for compatibility with the current installer.
+
+## License
+
+BSD 3-Clause. See [LICENSE](LICENSE).
