@@ -20,7 +20,16 @@ sleep 2
 sudo mkdir -p /LegionGoSGyroDSU
 cd /LegionGoSGyroDSU
 
-sudo wget https://github.com/Sooly890/LegionGoSGyroDSU/releases/latest/download/LegionGoSGyroDSU.tar.gz || exit 1
+repo="christopherl/legion-go-2-gyro-dsu"
+archive="LegionGoSGyroDSU.tar.gz"
+download_url=$(curl -fsSL "https://api.github.com/repos/${repo}/releases?per_page=1" | sed -n 's/.*"browser_download_url": "\(.*\/'"${archive}"'\)".*/\1/p' | head -n 1)
+
+if [ -z "$download_url" ]; then
+    echo "Could not find ${archive} in the latest release for ${repo}."
+    exit 1
+fi
+
+sudo wget "$download_url" -O "$archive" || exit 1
 
 sudo tar -xzvf  LegionGoSGyroDSU.tar.gz || exit 1
 sudo rm LegionGoSGyroDSU.tar.gz

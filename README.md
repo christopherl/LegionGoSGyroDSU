@@ -48,8 +48,7 @@ The installer places the project in:
 
 After installation, reboot so the IIO sensor devices are initialized correctly.
 
-The release archive URL is defined in `scripts/install.sh`. If you publish your
-own releases from this fork, update that script to point at this repository.
+The installer downloads the latest release archive from this repository.
 
 ## Configuration
 
