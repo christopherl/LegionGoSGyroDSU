@@ -10,6 +10,13 @@ This repository is a fork of `LegionGoSGyroDSU`. The current service, binary and
 installation directory still use the upstream `LegionGoSGyroDSU` naming
 internally.
 
+## Credits
+
+This project is based on the original
+[LegionGoSGyroDSU](https://github.com/Sooly890/LegionGoSGyroDSU) project by
+[Sooly890](https://github.com/Sooly890). Thanks to the upstream author and
+contributors for the initial implementation.
+
 ## Features
 
 - Reads gyroscope and accelerometer data from IIO devices
